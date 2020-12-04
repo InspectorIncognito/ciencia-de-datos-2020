@@ -1,1 +1,5 @@
-# ciencia-de-datos-2020
+# Transapp
+
+Ejecutar para iniciar jupyter
+
+~/.local/bin/jupyter-notebook
