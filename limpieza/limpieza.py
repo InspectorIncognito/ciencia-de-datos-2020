@@ -87,7 +87,6 @@ def esServicio(servicio):
     
     return: True si el servicio está en la lista, False si no
     """
-    #servs = np.load('servicios_unicos.npy')
     servs = np.load('servicios_unicos.npy')
     if servicio in servs:
         return True
@@ -102,8 +101,6 @@ def servicio(df):
     formatoServicio y esServicio
     """
     file_ = list(load_cpickle('servs_onehot.pkl').keys())
-    #df = df[df['Servicio'].map(lambda x: (formatoServicio(x) == True) and (esServicio(x) == True))]
-    #df = df[df['Servicio'].map(lambda x: (x in file_ == True))]
     df = df[df['Servicio'].isin(file_)]
     return df
 
@@ -162,12 +159,6 @@ def gpsDia(GPS):
     día de la semana de cada fecha
     """
     fecha = pd.to_datetime(GPS["GPS_time"])
-    #fecha = GPS['GPS_time']
-    #dias = []
-    #for i in fecha:
-    #    d = calendar.day_name[i.weekday()]
-    #    dias.append(d)
-    #GPS['dias']=dias
     GPS['dias'] = fecha.apply(lambda x: calendar.day_name[x.weekday()])
     return GPS
 
@@ -216,7 +207,7 @@ def horarios(hora):
     else:
         return 0
 
-def gpsHorarios(GPS): ##función que entrega el tipo de horario en el que circula el bus
+def gpsHorarios(GPS): 
     """
     GPS: dataframe
     
@@ -258,6 +249,7 @@ def notnull_serv(df):
     return df[df["Servicio"] != " "]
 
 def cod_dia(df):
+    """one-hot encoding de los días de la semana"""
     return pd.get_dummies(df, columns=['dias'], prefix='dia', prefix_sep='_', drop_first=True)
 
 def limpieza(df, target = False):
