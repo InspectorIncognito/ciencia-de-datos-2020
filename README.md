@@ -15,27 +15,11 @@ Desarrollar una nueva métrica para estimar el tiempo de llegada de los buses a 
 
 #### Requisitos
 
-
+- matplotlib==3.3.1
+- numpy==1.19.2
+- pandas==1.1.2
 
 ## Modo de uso
-
-La lista presentada a continuación corresponde a lo que llamaremos *servicios de interés*:
-- 506 presenta corredor segregado
-- 210 presenta corredor segregado
-- 401 corredor alameda
-- 421 corredor alameda
-- 118 caletera vespucio sur
-- 315e carretera quilicura
-- 712 recorrido de norte a sur
-- 301 recorrido de norte a sur
-- 201e carretera a San Bernardo
-- 428 caletera vespucio poniente
-- 428e carretera vespucio poniente
-- c15 recorrido corto, con frecuencia baja y circunvalar
-- c09 recorrido corto, con frecuencia baja
-- 307 recorrido circunvalar, i.e. tiene una sola dirección
-- E07 empieza y termina en intermodal Bellavista de la Florida
-- 211c empieza y termina en intermodal La Cisterna
 
 Para lograr crear un modelo de predicción de tiempos de espera se debe proceder como sigue:
 
