@@ -1,0 +1,98 @@
+DATOS GPS DE TRANSANTIAGO
+
+Contexto: Transapp tiene como objetivo mejorar la calidad de vida de las personas en todas las ciudades del mundo. Hoy en día Santiago es una de las ciudades donde opera. Un ámbito importante en la calidad de vida tiene que ver con aprovechar el tiempo que las personas tienen para realizar las actividades que les reporta beneficio, pero muchas veces está limitado por los desplazamientos que deben afrontar, específicamente en el transporte público, usado por un porcentaje importante de la población, por lo que minimizar su tiempo de uso es importante. 
+
+Dentro de los servicios que presta TranSapp a sus usuarios está el conocer el tiempo en que pasará un bus por un paradero, de manera que estos puedan organizarse para obtener el máximo benenificio del tiempo. Actualmente esta información es entregada a TranSapp (y Transapp la entrega a sus usuarios a través de una app móvil) por Sonda, proveedor tecnológico de Transantiago, pero con el tiempo nos hemos dado cuenta que estos datos no son muy precisos, presentan ausencia en algunos lugares y no permite mejora alguna por parte de TranSapp. Es importante para TranSapp independizarse de este proveedor externo para entregar un mejor servicio a sus usuarios.
+
+Este proyecto tiene como objetivo implementar un predictor de tiempos de llegada de bus al paradero usando como inputs los siguientes archivos:
+
+	1 - YYYY-MM-DD.gps.gz: pulsos GPS de todos los buses de transantiago del día YYYY-MM-DD, se usarán días entre el 2019-08-01 y 2019-08-31
+	2 - 2019-07-01.stop: secuencia de parada (puntos donde se detiene un servicio a lo largo de su ruta) para cada servicio presente en los datos
+	3 - 2019-07-01.shape: descripción geográfica del recorrido que realiza cada servicio
+	
+El archivo 2019-07-01.stop contiene las siguientes columnas:
+	
+	- Servicio: código sonda, identifica un servicio de manera única. Por ejemplo "T461 00I", relevante para el proyecto
+	- ServicioUsuario: código que ve el usuario en la calle más un sufijo de sentido (I=ida, R=retorno), el sufijo asignado a cada sentido es arbitrario. Por ejemplo "101I", no relevante para el proyecto
+	- Operador: número que identifica a la empresa que opera el servicio, no relevante para este proyecto
+	- Correlativo: indica el orden de detención que presenta la parada para un servicio. Por ejemplo, un valor 1 indica que la parada descrita en esa fila es usada por el servicio que aparece en la columna "Servicio" como la primera parada, un 2 indica la segunda parada y así ... 
+	- Codigo: código de parada interno de transantiago. Por ejemplo T-4-25-OP-5, no relevante para el proyecto
+	- CodigoUsuario: código de parada visible al usuario. Por ejemplo PA433, relevante para el proyecto, usar este cuando se hable de parada
+	- Nombre: nombre de la parada, no relevante para el proyecto
+	- Latitud: latitud de la ubicación de la parada, relevante para el proyecto
+	- Longitud: longitud de la ubicación de la parada, relevante para el proyecto
+	- esZP: indica que si la parada es una zona paga (con validadores bip! en la parada) en algún momento del día, no relevante para el proyecto
+
+El archivo 2019-07-01.shape contiene las siguientes columnas:
+
+	- Servicio: código sonda, identifica un servicio de manera única. Por ejemplo "T461 00I", relevante para el proyecto
+	- EsSeccionIni: indica si el punto da inicio a un tramo de 500 metros a lo largo de la ruta, no relevante para el proyecto
+	- Latitud: latitud de la ubicación de un punto que da forma a la ruta, relevante para el proyecto
+	- Longitud: longitud de la ubicación de un punto que da forma a la ruta, relevante para el proyecto
+	- Operador: número que identifica a la empresa que opera el servicio, no relevante para este proyecto
+	- ServicioUsuario: código que ve el usuario en la calle, no relevante para el proyecto
+
+El archivo YYYY-MM-DD.gps.gz contiene las siguientes columnas:
+	
+	- El archivo no tiene encabezado por lo que se describen por orden de izquierda a derecha
+	- columna1: patente de la máquina, relevante para el proyecto
+	- columna2: servicio, con código sonda, relevante para el proyecto
+	- columna3: día y hora en horario local en que se midió el pulso GPS, reportada por el dispositivo GPS instalado en la máquina, relevante para el proyecto
+	- columna4: latitude reportada, relevante para el proyecto
+	- columna5: longitud reportada, relevante para el proyecto
+	- columna6: distancia en ruta en metros, corresponde a la distancia desde el inicio de la ruta que ha recorrido la máquina usando el shape correspondiente al servicio que aparece en la columna2, relevante para el proyecto
+	- columna7: distancia a la ruta en metros, indica que tan lejos se encuentra la máquina de la ruta que debería seguir (según el servicio reportado en columna2) , relevante para el proyecto
+	- columna8: indicador interno, no relevante para el proyecto
+	- columna9: indicador interno, no relevante para el proyecto 
+	- columna10:  indicador interno, no relevante para el proyecto
+	
+
+
+Objetivo general: construir un programa en python que dado una entrada indique los tiempos de los próximos buses
+
+Objetivos específicos:
+	
+	1 - Establecer propuestas de modelos predictivos (al menos tres) tomando en cuenta los siguientes recorridos "representativos":
+		- 506 presenta corredor segregado
+		- 210 presenta corredor segregado
+		- 401 corredor alameda
+		- 421 corredor alameda
+		- 118 caletera vespucio sur
+		- 315e carretera quilicura
+		- 712 recorrido de norte a sur
+		- 301 recorrido de norte a sur
+		- 201e carretera a San Bernardo
+		- 428 caletera vespucio poniente
+		- 428e carretera vespucio poniente
+		- c15 recorrido corto, con frecuencia baja y circunvalar
+		- c09 recorrido corto, con frecuencia baja
+		- 307 recorrido circunvalar, i.e. tiene una sola dirección
+		- E07 empieza y termina en intermodal Bellavista de la Florida
+		- 211c empieza y termina en intermodal La Cisterna
+	2 - Implementar modelos predictivos
+	3 - Comparar rendimiento de cada uno sobre el conjunto de servicios descritos en el objetivo específico uno
+	4 - Elegir un modelo predictivo
+	5 - Dado el modelo elegido, correr nuevamente el análisis de rendimiento pero considerando todos los servicios válidos en los datos (todo el sistema)
+	6 - Implementar un programa en Python, ejecutable en consola, que entregue los tiempos estimados de llegada de los buses disponibles dados los inputs --user y --machine del siguiente estilo:
+		- --user <servicio> <distancia_en_ruta> <tiempo_consulta>, donde <servicio> es el servicio consultado, <distancia_en_ruta> es la distancia en ruta a la que se encuentra el usuario y <tiempo_consulta> es el timestamp local en que se realiza la consulta.
+		- --machine <patente> <servicio> <distancia_en_ruta> <tiempo_medición>, donde <patente> es la patente del bus, <servicio> es el servicio que está realizando el bus, <distancia_en_ruta> es la distancia a la que se encuentra el bus y <tiempo_medición> es el timestamp local en que la máquina se encuentra en esa posición de la ruta. Este input se debe poder ingresar más de una vez.
+		- Ejemplo: 
+			python predictor.py --user 'T506 00I' 3200 '2020-08-20 14:05:00' --machine AABB11 'T506 00I' 1234 '2020-08-20 14:00:00' --machine CCDD11 'T506 00I' 2400 '2020-08-20 14:00:00'
+		- Salida: 
+			- Machine 'AABB11' will arrive at '2020-08-20 14:06:00'
+			- Machine 'CCDD11' will arrive at '2020-08-20 14:05:45'
+	7 - implementar test para el programa de consola
+	8 - todo el código debe quedar almacenado en un repositorio en github*
+	
+*: transapp indicará cuál será el repositorio
+
+
+
+
+
+
+
+
+
+
+
