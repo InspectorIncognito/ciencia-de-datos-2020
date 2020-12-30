@@ -93,14 +93,17 @@ def esServicio(servicio):
     else:
         return False
 
-def servicio(df):
+def servicio(df, path = None):
     """
     df: dataframe
     
     return: dataframe servicios que cumplen
     formatoServicio y esServicio
     """
-    file_ = list(load_cpickle('servs_onehot.pkl').keys())
+    if not path is None:
+        file_ = list(load_cpickle(path).keys())
+    else:
+        file_ = list(load_cpickle('servs_onehot.pkl').keys())
     df = df[df['Servicio'].isin(file_)]
     return df
 
@@ -272,13 +275,48 @@ def limpieza(df, target = False):
 
 MEAN_PATH = 'mean.csv'
 STD_PATH = 'std.csv'
-COLUMNS_NORM = ["DistanciaInicio1", "DistanciaRuta1", "Latitud1", "Longitud1", "DistanciaInicio2", "DistanciaRuta2", "Latitud2", "Longitud2"]
+COLUMNS_NORM = ["DistanciaRuta1", "Latitud1", "Longitud1", "DistanciaRuta2", "Latitud2", "Longitud2"]
 
-def normalize(df):
-    mean = pd.read_csv(MEAN_PATH, sep=',', names=["cols", "values"])
-    std = pd.read_csv(STD_PATH, sep=',', names=["cols", "values"])
+def normalize(df, path_mean = None, path_std = None):
+    
+    if path_mean is None:
+        mean = pd.read_csv(MEAN_PATH, sep=',', names=["cols", "values"])
+    else:
+        mean = pd.read_csv(path_mean, sep=',', names=["cols", "values"])
+    
+    if path_std is None:
+        std = pd.read_csv(STD_PATH, sep=',', names=["cols", "values"])
+    else:
+        std = pd.read_csv(path_std, sep=',', names=["cols", "values"])
+    
     mean = mean.set_index(mean["cols"]).drop(columns=["cols"]).T
     std = std.set_index(std["cols"]).drop(columns=["cols"]).T
 
     df[COLUMNS_NORM] = (df[COLUMNS_NORM] - mean[COLUMNS_NORM].to_numpy()) / std[COLUMNS_NORM].to_numpy()
     return df
+
+def indices_to_one_hot(data, nb_classes=7):
+    days = np.array(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
+    dummies = pd.get_dummies(days, columns=['dias'], drop_first=False) 
+    df = pd.DataFrame(dummies[data].T.values, columns=["dia_"+d for d in days])
+    return df
+
+def clean(data):
+    data = gpsDia(data)
+    data = servicio(data, path = '../limpieza/servs_onehot.pkl')
+    data = distancia(data)
+    data = notnull_serv(data)
+    data = habilday(data)
+    cod = indices_to_one_hot(data["dias"])
+    data = pd.concat([data, cod], axis=1)
+    data = data.drop(columns=['dias', 'GPS_time', 'dia_Friday'])
+    data = pd.concat([data.iloc[0].add_suffix('1'), data.iloc[1].add_suffix('2')], axis=0)
+    data = pd.DataFrame(data).transpose()
+    data = data.drop(columns=["Servicio2", "Servicio1", "dia_habil2", "dia_Monday2", "dia_Saturday2", "dia_Sunday2", "dia_Thursday2", "dia_Tuesday2", "dia_Wednesday2"])
+
+    data = normalize(data, path_mean = '../limpieza/mean.csv', path_std = '../limpieza/std.csv')
+    data['Distancia_Total'] = data['DistanciaInicio2'] - data['DistanciaInicio1']
+    data = data.drop(columns=["Latitud1", "Longitud1", "Latitud2", "Longitud2", "DistanciaInicio1","DistanciaInicio2"])
+    data = data.rename(columns={"dia_Sunday1":"dia_Sunday12"})
+    data = data[["Distancia_Total",	"dia_habil1",	"dia_Monday1",	"dia_Saturday1",	"dia_Sunday12",	"dia_Thursday1",	"dia_Tuesday1",	"dia_Wednesday1"]]
+    return data

@@ -1,5 +1,12 @@
 import argparse
+import pandas as pd
+import sys
+#import pickle
+import datetime
 
+sys.path.append('../limpieza')
+import limpieza
+import model
 
 def arguments_to_dict(arguments):
     arg_dict = dict(
@@ -26,10 +33,35 @@ if __name__ == '__main__':
     args = parser.parse_args()
     parsed_args_dict = arguments_to_dict(args)
     # Here you should call the prediction method with the parsed argument to generate the results.
+    data = pd.DataFrame({
+        "Servicio": [parsed_args_dict['machine'][0]["service"], parsed_args_dict['user']["service"]],
+        "GPS_time": [parsed_args_dict['machine'][0]["measurement_time"], parsed_args_dict['user']["query_time"]],
+        "DistanciaInicio": [parsed_args_dict['machine'][0]["route_distance"], parsed_args_dict['user']["route_distance"]],
+        "DistanciaRuta": [0, 0],
+        "Latitud": [0, 0],
+        "Longitud": [0, 0]
+    })
+    data["DistanciaInicio"] = data["DistanciaInicio"].astype(int)
+    data = limpieza.clean(data)
+    #with open('../notebooks/encoding1.pickle', 'rb') as handle:
+    #    servs_encoding = pickle.load(handle)
+    #data['Servicio'] = data['Servicio'].apply(lambda x: servs_encoding[x])
+    #print(data.values)
+    pred = model.predict(data)
+    #print(pred)
+    #datetime.strptime(date_time_str, '%d/%m/%y %H:%M:%S')
+    
+    time_user = datetime.datetime.strptime(parsed_args_dict['user']["query_time"], '%Y-%m-%d %H:%M:%S')
+    time_machine = datetime.datetime.strptime(parsed_args_dict['machine'][0]["measurement_time"], '%Y-%m-%d %H:%M:%S')
+    
+    delta = (time_user-time_machine)
+    #print(delta)
+    
+    delta = datetime.timedelta(seconds = pred[0]) - delta
+    time_user += delta
 
     # result example:
-    result_list = [dict(license_plate="AABB11", arrival_time="2020-08-20 14:06:00"),
-                   dict(license_plate="CCDD11", arrival_time="2020-08-20 14:05:45")]
+    result_list = [dict(license_plate=parsed_args_dict['machine'][0]["license_plate"], arrival_time=time_user.strftime("%Y-%m-%d %H:%M:%S"))]
 
     for result in result_list:
         print("- Machine '{0}' will arrive at '{1}'".format(result['license_plate'], result['arrival_time']))
